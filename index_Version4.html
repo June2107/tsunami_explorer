@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tsunami Simulator 🌊</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Plotly.js CDN -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Verdana, Geneva, Tahoma, sans-serif;
+            background: linear-gradient(135deg, #e0f7fa 0%, #fef6e4 100%);
+            color: #1a3b5d;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto 32px auto;
+            background: #fff8f2;
+            border-radius: 22px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+            padding: 36px 32px 28px 32px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.3em;
+            margin-bottom: 0.2em;
+            letter-spacing: 1px;
+        }
+        h2 {
+            margin-top: 2.2em;
+            margin-bottom: 0.7em;
+            color: #168aad;
+            font-size: 1.35em;
+            letter-spacing: 1px;
+        }
+        label {
+            font-weight: bold;
+        }
+        .cute {
+            font-size: 2em;
+            vertical-align: middle;
+        }
+        .result, .evac-result {
+            font-size: 1.11em;
+            margin: 1em 0 1em 0;
+            padding: 0.8em 1.1em;
+            border-radius: 0.9em;
+        }
+        .result {
+            background: #e4f7ef;
+            color: #1a4b2f;
+            border: 1px solid #a9dbb8;
+        }
+        .evac-success {
+            background: #e6f7ff;
+            color: #0e4b50;
+            border: 1px solid #7dc3e7;
+        }
+        .evac-fail {
+            background: #ffeaea;
+            color: #b92d2d;
+            border: 1px solid #ffbaba;
+        }
+        input[type="range"] {
+            width: 62%;
+            margin-top: 0.5em;
+        }
+        .input-row {
+            margin-bottom: 1.6em;
+            display: flex;
+            align-items: center;
+        }
+        .input-row label {
+            flex: 1 0 220px;
+            min-width: 190px;
+        }
+        .input-row input[type="range"] {
+            flex: 2 1 270px;
+        }
+        .input-row span {
+            margin-left: 15px;
+            min-width: 60px;
+            color: #145374;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+        .tips {
+            background: #fffbe6;
+            border: 1px dashed #efc868;
+            padding: 1.2em 1.1em 0.7em 1.1em;
+            margin-top: 1.6em;
+            border-radius: 0.9em;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 2.5em;
+            color: #888;
+            font-size: 1em;
+        }
+        .flex-plots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            justify-content: center;
+            align-items: flex-start;
+            margin: 1.3em 0 0.8em 0;
+        }
+        .plot-container {
+            background: #f7fafb;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            padding: 1em 1.2em;
+            margin-bottom: 0.2em;
+            width: 350px;
+            min-width: 250px;
+            max-width: 370px;
+            flex: 1 1 350px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .plot-title {
+            font-size: 1.08em;
+            margin-bottom: 0.4em;
+            color: #167c91;
+            font-weight: 500;
+            text-align: center;
+        }
+        #plotly-depth-speed, #plotly-depth-time {
+            width: 100% !important;
+            height: 230px !important;
+            min-height: 180px !important;
+        }
+        .math-eqn {
+            text-align: center;
+            font-size: 1.22em;
+            margin-bottom: 1.2em;
+        }
+        @media (max-width: 900px) {
+            .container { padding: 18px 3vw; }
+            .flex-plots { flex-direction: column; align-items: center; }
+            .plot-container { width: 96vw; max-width: 99vw; min-width: 0; }
+        }
+        @media (max-width: 600px) {
+            .input-row { flex-direction: column; align-items: flex-start; gap: 0.3em; }
+            .input-row label, .input-row span { min-width: 0; }
+            h1 { font-size: 1.38em; }
+        }
+    </style>
+    <script>
+        function updateValue(id, value, unit) {
+            document.getElementById(id).innerText = value + (unit ? (' ' + unit) : '');
+        }
+
+        function calculate() {
+            // Get values
+            const g = 9.81;
+            const depth = Number(document.getElementById('depth').value);
+            const distance = Number(document.getElementById('distance').value);
+            const evac_dist = Number(document.getElementById('evac_dist').value);
+            const evac_speed = Number(document.getElementById('evac_speed').value);
+
+            // Calculate tsunami speed
+            const speed_mps = Math.sqrt(g * depth);
+            const speed_kmh = speed_mps * 3.6;
+            const arrival_min = (distance / speed_kmh) * 60;
+
+            // Evacuation time
+            const your_time = (evac_dist / evac_speed) * 60;
+
+            // Display
+            document.getElementById('speed_result').innerHTML =
+                `<span class="cute">🌊</span> Tsunami Speed: <b>${speed_kmh.toFixed(1)} km/h</b> (${speed_mps.toFixed(1)} m/s)<br>` +
+                `Distance to Coast: <b>${distance} km</b>`;
+            document.getElementById('arrival_result').innerHTML =
+                `<span class="cute">⏱️</span> Tsunami will reach the coast in <b>${arrival_min.toFixed(1)} minutes</b>!`;
+
+            // Evacuation result
+            let evac_html = '';
+            if (your_time < arrival_min) {
+                evac_html = `<div class="evac-result evac-success"><span class="cute">🎉🏃‍♂️</span> You escaped in <b>${your_time.toFixed(1)} minutes</b>! You’re safe! <span class="cute">⛰️</span></div>`;
+            } else {
+                evac_html = `<div class="evac-result evac-fail"><span class="cute">💀</span> You needed <b>${your_time.toFixed(1)} minutes</b>, but the tsunami arrived in <b>${arrival_min.toFixed(1)} minutes</b>. Try running faster or starting closer to safety! <span class="cute">🌊</span></div>`;
+            }
+            document.getElementById('evac_result').innerHTML = evac_html;
+        }
+
+        // Plot: Tsunami Speed vs Water Depth
+        function plotDepthVsSpeed() {
+            const g = 9.81;
+            let depths = [];
+            let speeds = [];
+            for (let d = 100; d <= 8000; d += 100) {
+                depths.push(d);
+                speeds.push(Math.sqrt(g * d) * 3.6); // km/h
+            }
+            const trace1 = {
+                x: depths,
+                y: speeds,
+                mode: 'lines+markers',
+                line: { color: '#2e8fff', width: 3 },
+                marker: { color: '#2e8fff', size: 5 },
+                name: 'Tsunami Speed'
+            };
+            const layout1 = {
+                margin: { t: 28, r: 12, b: 48, l: 48 },
+                xaxis: { title: 'Ocean Depth (meters)', tickfont: {size:12} },
+                yaxis: { title: 'Tsunami Speed (km/h)', tickfont: {size:12} },
+                height: 230,
+                title: ''
+            };
+            Plotly.newPlot('plotly-depth-speed', [trace1], layout1, {responsive: true, displayModeBar: false});
+        }
+
+        // Plot: Tsunami Arrival Time vs Distance
+        function plotArrivalTime() {
+            const g = 9.81;
+            const depth = Number(document.getElementById('depth').value);
+            const speed_kmh = Math.sqrt(g * depth) * 3.6;
+            let distances = [], times = [];
+            for (let d = 10; d <= 1000; d += 10) {
+                distances.push(d);
+                times.push((d / speed_kmh) * 60); // minutes
+            }
+            const trace2 = {
+                x: distances,
+                y: times,
+                mode: 'lines+markers',
+                line: { color: '#fba01b', width: 3 },
+                marker: { color: '#fba01b', size: 5 },
+                name: 'Arrival Time'
+            };
+            const layout2 = {
+                margin: { t: 28, r: 12, b: 48, l: 48 },
+                xaxis: { title: 'Distance from Source (km)', tickfont: {size:12} },
+                yaxis: { title: 'Arrival Time (minutes)', tickfont: {size:12} },
+                height: 230,
+                title: ''
+            };
+            Plotly.newPlot('plotly-depth-time', [trace2], layout2, {responsive: true, displayModeBar: false});
+        }
+
+        window.onload = function(){
+            calculate();
+            plotDepthVsSpeed();
+            plotArrivalTime();
+            // Redraw arrival time plot if depth slider changes
+            document.getElementById('depth').addEventListener('input', plotArrivalTime);
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>🌊 Tsunami Simulator 🏝️</h1>
+        <div style="text-align:center;font-size:1.13em;margin-bottom:1.1em;">
+            Interactive app to understand tsunami formation & safe evacuation.<br>
+            Adjust parameters to simulate different scenarios!
+        </div>
+        <h2>1. Tsunami Formation & Arrival Time</h2>
+        <div class="math-eqn">
+            <b>Shallow Water Wave Equation:</b><br>
+            <span style="background:#222;color:#fff;border-radius:0.3em;padding:0.1em 0.6em;font-size:1.14em;">
+                v = √(g × d)
+            </span>
+            <br>
+            <small>where <b>v</b> = speed (m/s), <b>g</b> = 9.81 m/s², <b>d</b> = depth (m)</small>
+        </div>
+        <div class="input-row">
+            <label for="depth">🌊 Ocean Depth (meters):</label>
+            <input type="range" min="100" max="8000" value="4000" id="depth" step="100" oninput="updateValue('depth_val', this.value, 'm');calculate();">
+            <span id="depth_val">4000 m</span>
+        </div>
+        <div class="input-row">
+            <label for="distance">📏 Distance from Earthquake to Coast (km):</label>
+            <input type="range" min="10" max="1000" value="200" id="distance" step="10" oninput="updateValue('distance_val', this.value, 'km');calculate();">
+            <span id="distance_val">200 km</span>
+        </div>
+        <div style="margin:0.7em 0 0.3em 0;">
+            Gravity (g): <b>9.81 m/s²</b>
+        </div>
+        <div id="speed_result" class="result"></div>
+        <div id="arrival_result" class="result"></div>
+
+        <!-- Math/Physics Plots in two-column flex layout -->
+        <div class="flex-plots">
+            <div class="plot-container">
+                <div class="plot-title">Tsunami Speed vs Ocean Depth</div>
+                <div id="plotly-depth-speed"></div>
+            </div>
+            <div class="plot-container">
+                <div class="plot-title">Tsunami Arrival Time vs Distance</div>
+                <div id="plotly-depth-time"></div>
+            </div>
+        </div>
+        <div style="text-align:center;font-size:1em;margin:0.5em 0 1.1em 0;color:#555;">
+            <b>Graphs:</b> See how tsunami speed increases with depth, and how arrival time changes with distance or depth.
+        </div>
+
+        <h2>2. Tsunami Evacuation Simulator</h2>
+        <div class="input-row">
+            <label for="evac_dist">🏃 Distance you need to reach safety (km):</label>
+            <input type="range" min="0.1" max="5" value="1" step="0.1" id="evac_dist" oninput="updateValue('evac_dist_val', this.value, 'km');calculate();">
+            <span id="evac_dist_val">1 km</span>
+        </div>
+        <div class="input-row">
+            <label for="evac_speed">🚶‍♂️ Your evacuation speed (km/h):</label>
+            <input type="range" min="2" max="15" value="5" step="1" id="evac_speed" oninput="updateValue('evac_speed_val', this.value, 'km/h');calculate();">
+            <span id="evac_speed_val">5 km/h</span>
+        </div>
+        <div id="evac_result"></div>
+
+        <div class="tips">
+            <b>🎨 Cute Designs and Tips:</b>
+            <ul>
+                <li>Don’t wait to see the wave! Evacuate immediately if you feel an earthquake or see the sea recede quickly.</li>
+                <li>Practice evacuation routes with your family and friends.</li>
+                <li>Stay calm and help others, especially kids and elderly.</li>
+            </ul>
+            <div style="text-align:center;font-size:2em;">🌊🏝️🏃‍♂️⛰️</div>
+        </div>
+        <div class="footer">
+            Made with ❤️ for students who love the ocean, but want to stay safe!
+        </div>
+    </div>
+</body>
+</html>
